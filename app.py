@@ -630,6 +630,12 @@ with gr.Blocks(
              #   theme="soft", # glass
                 description="Type your question about building automation here.",
                 examples=[
+                    "What are the current maintenance protocols for HouseZero?",
+                    "How do the maintenance protocols for HouseZero compare to industry best practices?",
+                    "What are the most common maintenance challenges faced by net-zero energy buildings?",
+                    "How does the Uponor Climate Control Network System contribute to building maintenance?",
+                    "What role do smart systems play in the maintenance of sustainable buildings like HouseZero?",
+                    "Can you provide data on the energy performance of HouseZero over the past year?",                    
                      "Tell me about the HouseZero dataset. Retrieve information from the publication you have access to. Use your file retrieval tool.",
                     "Describe in detail the relationshp between the columns and values in the uploaded CSV files and the information you have access to regarding the HouseZero dataset. Be verbose. Use your file retrieval tool.",
                     "Give me in great detail any advice you have to maintain a small to midsize office building, like the HouseZero data corresponds to. Be verbose. Use your file retrieval tool.",
@@ -640,6 +646,7 @@ with gr.Blocks(
                     "Based on the data in these CSV files, can you assign an EnergyIQ score from 1-10 that reflects how well the building is operating? Explain the reason for your score and provide any recommendations on actions to take that can improve it in the future. Be verbose. Use your file retrieval tool.",
                     "Please summarize information concerning sensor networks that may be leading to faulty meaurements.",
                     "Tell me how to properly install the PVC sky lights.",
+                    "Based on data and insights, what specific changes should be made to HouseZero's maintenance protocols?"
                 ],
                 fill_height=True,
             )
