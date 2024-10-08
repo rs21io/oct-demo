@@ -560,6 +560,7 @@ with gr.Blocks(
                     "Give the weather forecast for Cambridge, MA",
                     "Give me the weather forecast for New York, NY. express the windspeed in miles per hour.",
                     "list the authors on the academic paper associated with the homezero project.",
+                    "show the first few rows of each of the uploaded csv files",
                     "What are the current maintenance protocols for HouseZero?",
                     "How do the maintenance protocols for HouseZero compare to industry best practices?",
                     "What are the most common maintenance challenges faced by net-zero energy buildings?",
