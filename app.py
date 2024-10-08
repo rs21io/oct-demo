@@ -6,6 +6,7 @@ from threading import Thread
 import queue
 from openai import AssistantEventHandler
 from typing_extensions import override
+import json
 
 load_dotenv()
 
@@ -28,48 +29,8 @@ import io
 from pandasai import SmartDataframe
 from collections import Counter
 
-# llmmodel = OpenAI(api_token=os.environ["OPENAI_API_KEY"], model='gpt-4o')
-
 import requests
 
-
-
-functions = [
-    {
-        "name": "update_weather",
-        "description": "Fetches and returns the current weather information for a specified location.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "location": {
-                    "type": "string",
-                    "description": "The name of the city or location to get weather information for."
-                }
-            },
-            "required": ["location"]
-        }
-    }
-]
-
-tools=[
-    {
-      "type": "function",
-      "function": {
-       "name": "update_weather",
-        "description": "Fetches and returns the current weather information for a specified location.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "location": {
-                    "type": "string",
-                    "description": "The name of the city or location to get weather information for."
-                }
-            },
-            "required": ["location"]
-        }
-        }
-      }
-]
 
 
 def get_weather(location: str) -> str:
@@ -87,26 +48,6 @@ def get_weather(location: str) -> str:
     response = requests.get(base_url, params=params)
     weather_data = response.json()
     return weather_data
-
-
-get_weather_schema = """
-{
-    "name": "get_weather",
-    "description": "Fetches the weather for a location based on a search term.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "location": {
-                "type": "string",
-                "description": "Name of the city"
-            }
-        },
-        "required": [
-            "location"
-        ]
-    }
-}
-"""
 
 
 # Function to generate a date range
@@ -211,36 +152,6 @@ class EventHandler(AssistantEventHandler):
         super().__init__()
         self.response_queue = response_queue
 
-  #  @override
-  #  def on_event(self, event):
-  #    # Retrieve events that are denoted with 'requires_action'
-  #    # since these will have our tool_calls
-  #    if event.event == 'thread.run.requires_action':
-  #      run_id = event.data.id  # Retrieve the run ID from the event data
-  #      self.handle_requires_action(event.data, run_id)
- 
-  #  def handle_requires_action(self, data, run_id):
-  #    tool_outputs = []
-        
-  #    for tool in data.required_action.submit_tool_outputs.tool_calls:
-  #      if tool.function.name == "update_weather":
-  #        tool_outputs.append({"tool_call_id": tool.id, "output": "57"})
-
-      # Submit all tool_outputs at the same time
-  #    self.submit_tool_outputs(tool_outputs, run_id)
-
-   # def submit_tool_outputs(self, tool_outputs, run_id):
-   #   # Use the submit_tool_outputs_stream helper
-   #   with client.beta.threads.runs.submit_tool_outputs_stream(
-   #     thread_id=self.current_run.thread_id,
-   #     run_id=self.current_run.id,
-   #     tool_outputs=tool_outputs,
-   #     event_handler=EventHandler(),
-   #   ) as stream:
-   #     for text in stream.text_deltas:
-   #       print(text, end="", flush=True)
-   #     print()
-
     @override
     def on_text_created(self, text) -> None:
         pass
@@ -250,9 +161,44 @@ class EventHandler(AssistantEventHandler):
         text = delta.value
         self.response_queue.put(text)
 
+    @override
+    def on_event(self, event):
+      # Retrieve events that are denoted with 'requires_action'
+      # since these will have our tool_calls
+      if event.event == 'thread.run.requires_action':
+        run_id = event.data.id  # Retrieve the run ID from the event data
+        self.handle_requires_action(event.data, run_id)
+ 
+    def handle_requires_action(self, data, run_id):
+      tool_outputs = []
+        
+      for tool in data.required_action.submit_tool_outputs.tool_calls:
+        if tool.function.name == "update_weather_forecast":
+            print(tool.function.arguments)
+            args = json.loads(tool.function.arguments)
+            loc = args["location"]
+            tool_outputs.append({"tool_call_id": tool.id, "output": update_weather_forecast(loc)})
+        
+      # Submit all tool_outputs at the same time
+      self.submit_tool_outputs(tool_outputs, run_id)
+ 
+    def submit_tool_outputs(self, tool_outputs, run_id):
+      
+      # Use the submit_tool_outputs_stream helper
+      with client.beta.threads.runs.submit_tool_outputs_stream(
+        thread_id=self.current_run.thread_id,
+        run_id=self.current_run.id,
+        tool_outputs=tool_outputs,
+        event_handler=EventHandler(self.response_queue),
+      ) as stream:
+        for text in stream.text_deltas:
+          print(text, end="", flush=True)
+        print()
 
+response_queue = queue.Queue()
 def chat(usr_message, history):
     global thread_id
+    # global response_queue
     # start_conversation()
     user_input = usr_message
 
@@ -270,44 +216,16 @@ def chat(usr_message, history):
     )
 
     # Create a queue to hold the assistant's response chunks
-    response_queue = queue.Queue()
+    
 
-    # Instantiate the event handler with the queue
-    event_handler = EventHandler(response_queue)
 
     # Start the streaming run in a separate thread
     def run_stream():
         with client.beta.threads.runs.stream(
             thread_id=thread_id,
             assistant_id=ASSISTANT_ID,
-         #   parallel_tool_calls = False,
-            tool_choice = "required",
-          #  functions=functions,
-          #  function_call="auto",
-      #      tools=[
-      #          {
-      #            "type": "function",
-      #        "function": {
-      #         "name": "update_weather",
-      #          "description": "Fetches and returns the current weather information for a specified location.",
-      #      "parameters": {
-      #          "type": "object",
-      #          "properties": {
-      #              "location": {
-      #              "type": "string",
-      #              "description": "The name of the city or location to get weather information for."
-      #          }
-      #          },
-      #          "required": ["location"]
-      #      }
-      #      }
-      #    }
-    #            ],
-         #   tool_choice = {"type": "file_search"},
-         #   tools = [{"type": "file_search"}],
-         #   tool_resources={"file_search": {"vector_store_ids": [VECTOR_STORE_ID]}},
-        #    additional_instructions="Always carry out a file search for the desired information",
-            event_handler=event_handler,
+            # tool_choice = "required",
+            event_handler=EventHandler(response_queue),
         ) as stream:
             stream.until_done()
 
@@ -328,41 +246,6 @@ def chat(usr_message, history):
 
     # Wait for the stream thread to finish
     stream_thread.join()
-
-
-#def update_weather(location):
-#    api_key = os.environ["OPENWEATHERMAP_API_KEY"]
-#    base_url = "http://api.openweathermap.org/data/2.5/weather"
-#    params = {"q": location, "appid": api_key, "units": "metric"}
-#    response = requests.get(base_url, params=params)
-#    weather_data = response.json()
-
-    # {'coord': {'lon': -106.6645, 'lat': 35.2334}, 'weather': [{'id': 800, 'main': 'Clear', 'description': 'clear sky', 'icon': '01d'}], 'base': 'stations', 'main': {'temp': 21.79, 'feels_like': 20.89, 'temp_min': 20.06, 'temp_max': 23.22, 'pressure': 1024, 'humidity': 33, 'sea_level': 1024, 'grnd_level': 836}, 'visibility': 10000, 'wind': {'speed': 9.26, 'deg': 140}, 'clouds': {'all': 0}, 'dt': 1727798647, 'sys': {'type': 2, 'id': 2080227, 'country': 'US', 'sunrise': 1727787706, 'sunset': 1727830218}, 'timezone': -21600, 'id': 5487811, 'name': 'Rio Rancho', 'cod': 200}
-
-#    lon = weather_data["coord"]["lon"]
-#    lat = weather_data["coord"]["lat"]
-#    main = weather_data["weather"][0]["main"]
-#    feels_like = weather_data["main"]["feels_like"]
-#    temp_min = weather_data["main"]["temp_min"]
-#    temp_max = weather_data["main"]["temp_max"]
-#    pressure = weather_data["main"]["pressure"]
-#    visibility = weather_data["visibility"]
-#    wind_speed = weather_data["wind"]["speed"]
-#    wind_deg = weather_data["wind"]["deg"]
-#    sunrise = weather_data["sys"]["sunrise"]
-#    sunset = weather_data["sys"]["sunset"]
-#    temp = weather_data["main"]["temp"]
-#    humidity = weather_data["main"]["humidity"]
-#    condition = weather_data["weather"][0]["description"]
-
-#    return f"""Weather in {location}:
-#        (lon: {lon}, lat: {lat}),
-#        Temperature: {temp:.2f}°C, Feels like: {feels_like:.2f}°C,
-#        Temperature_min: {temp_min:.2f}°C, Temperature_max: {temp_max:.2f}°C,
-#        Humidity: {humidity}, Condition: {condition}, 
-#        Pressure: {pressure}, Visibility: {visibility}, Wind speed: {wind_speed},
-#        Wind deg: {wind_deg}, Sunrise: {sunrise}, Sunset: {sunset}"""
-
 
 
 # Function to update weather information
@@ -497,9 +380,6 @@ def update_weather_forecast(location: str) -> str:
     return ret_str
 
 
-
-
-
 llmmodel = OpenAI(api_token=os.environ["OPENAI_API_KEY"], model='gpt-4o')
 
 # Load dataframes
@@ -515,17 +395,6 @@ agent = Agent([dfcleaned, dfshaps], config={"llm": llmmodel})
 sdfshaps = SmartDataframe(dfshaps, config={"llm": llmmodel})
 sdfcleaned = SmartDataframe(dfcleaned, config={"llm": llmmodel})
 
-
-
-#def process_query(query):
-#    response = agent.chat(query) # or agent chat, gr.Image
-#    print(response)
-#    if isinstance(response, str) and ".png" in response:
-#        return response, response, None
-#    elif isinstance(response, str) and ".png" not in response:
-#        return response, None, None
-#    elif isinstance(response, pd.DataFrame):
-#        return None, None, response
 
 
 def process_query(query):
