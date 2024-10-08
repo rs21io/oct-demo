@@ -557,6 +557,8 @@ with gr.Blocks(
              #   theme="soft", # glass
                 description="Type your question about building automation here.",
                 examples=[
+                    "Give the weather forecast for Cambridge, MA",
+                    "Give me the weather forecast for New York, NY. express the windspeed in miles per hour.",
                     "list the authors on the academic paper associated with the homezero project.",
                     "What are the current maintenance protocols for HouseZero?",
                     "How do the maintenance protocols for HouseZero compare to industry best practices?",
