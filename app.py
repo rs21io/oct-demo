@@ -32,24 +32,6 @@ from collections import Counter
 import requests
 
 
-
-def get_weather(location: str) -> str:
-    """
-    Fetches the weather for a given location and returns a dictionary
-
-    Parameters:
-    - location: the search term to find current weather information
-    Returns:
-    The current weather for that location
-    """
-    api_key = os.environ["OPENWEATHERMAP_API_KEY"]
-    base_url = "http://api.openweathermap.org/data/2.5/weather"
-    params = {"q": location, "appid": api_key, "units": "imperial"}
-    response = requests.get(base_url, params=params)
-    weather_data = response.json()
-    return weather_data
-
-
 # Function to generate a date range
 def generate_date_range(start_date, end_date, freq="D"):
     return pd.date_range(start=start_date, end=end_date, freq=freq)
@@ -178,6 +160,11 @@ class EventHandler(AssistantEventHandler):
             args = json.loads(tool.function.arguments)
             loc = args["location"]
             tool_outputs.append({"tool_call_id": tool.id, "output": update_weather_forecast(loc)})
+        elif tool.function.name == "update_weather":
+            print(tool.function.arguments)
+            args = json.loads(tool.function.arguments)
+            loc = args["location"]
+            tool_outputs.append({"tool_call_id": tool.id, "output": update_weather(loc)})
         
       # Submit all tool_outputs at the same time
       self.submit_tool_outputs(tool_outputs, run_id)
@@ -250,7 +237,7 @@ def chat(usr_message, history):
 
 # Function to update weather information
 
-def update_weather(location):
+def update_weather(location:str )->str:
     api_key = os.environ["OPENWEATHERMAP_API_KEY"]
     base_url = "http://api.openweathermap.org/data/2.5/weather"
     params = {"q": location, "appid": api_key, "units": "imperial"}
