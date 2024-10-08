@@ -28,8 +28,31 @@ import matplotlib.pyplot as plt
 import io
 from pandasai import SmartDataframe
 from collections import Counter
-
+from gradio_pdf import PDF  # Ensure you have installed gradio_pdf
 import requests
+
+
+# Define the directory containing the PDFs
+PDF_DIR = "usedpdfs"  # Replace with your directory path
+
+# Ensure the PDF_DIR exists
+if not os.path.isdir(PDF_DIR):
+    raise ValueError(f"The directory '{PDF_DIR}' does not exist. Please check the path.")
+
+# Get list of PDF files in the directory
+pdf_files = [f for f in os.listdir(PDF_DIR) if f.lower().endswith('.pdf')]
+
+# Check if there are PDF files in the directory
+if not pdf_files:
+    raise ValueError(f"No PDF files found in the directory '{PDF_DIR}'.")
+
+def display_pdf(selected_file):
+    """
+    Given the selected file name, return the full path to display in the PDF viewer.
+    """
+    file_path = os.path.join(PDF_DIR, selected_file)
+    return file_path
+
 
 
 # Function to generate a date range
@@ -142,7 +165,7 @@ class EventHandler(AssistantEventHandler):
     def on_text_delta(self, delta, snapshot):
         text = delta.value
         self.response_queue.put(text)
-
+    
     @override
     def on_event(self, event):
       # Retrieve events that are denoted with 'requires_action'
@@ -168,24 +191,22 @@ class EventHandler(AssistantEventHandler):
         
       # Submit all tool_outputs at the same time
       self.submit_tool_outputs(tool_outputs, run_id)
- 
-    def submit_tool_outputs(self, tool_outputs, run_id):
-      
-      # Use the submit_tool_outputs_stream helper
-      with client.beta.threads.runs.submit_tool_outputs_stream(
-        thread_id=self.current_run.thread_id,
-        run_id=self.current_run.id,
-        tool_outputs=tool_outputs,
-        event_handler=EventHandler(self.response_queue),
-      ) as stream:
-        for text in stream.text_deltas:
-          print(text, end="", flush=True)
-        print()
 
-response_queue = queue.Queue()
+    def submit_tool_outputs(self, tool_outputs, run_id):
+        # Use the submit_tool_outputs_stream helper
+        with client.beta.threads.runs.submit_tool_outputs_stream(
+            thread_id=self.current_run.thread_id,
+            run_id=self.current_run.id,
+            tool_outputs=tool_outputs,
+            event_handler=EventHandler(self.response_queue),
+        ) as stream:
+            for text in stream.text_deltas:
+                print(text, end="", flush=True)
+                print()
+
+
 def chat(usr_message, history):
     global thread_id
-    # global response_queue
     # start_conversation()
     user_input = usr_message
 
@@ -203,15 +224,16 @@ def chat(usr_message, history):
     )
 
     # Create a queue to hold the assistant's response chunks
-    
+    response_queue = queue.Queue()
 
+    # Instantiate the event handler with the queue
 
     # Start the streaming run in a separate thread
     def run_stream():
         with client.beta.threads.runs.stream(
             thread_id=thread_id,
             assistant_id=ASSISTANT_ID,
-            # tool_choice = "required",
+            tool_choice = "required",
             event_handler=EventHandler(response_queue),
         ) as stream:
             stream.until_done()
@@ -235,9 +257,7 @@ def chat(usr_message, history):
     stream_thread.join()
 
 
-# Function to update weather information
-
-def update_weather(location:str )->str:
+def update_weather(location):
     api_key = os.environ["OPENWEATHERMAP_API_KEY"]
     base_url = "http://api.openweathermap.org/data/2.5/weather"
     params = {"q": location, "appid": api_key, "units": "imperial"}
@@ -417,8 +437,6 @@ def process_query(query):
 
 
 
-
-
 def gradio_app():
     iface = gr.Interface(
         fn=process_query,
@@ -463,7 +481,31 @@ with gr.Blocks(
                 outputs=output2,
                 api_name="update_weather_forecast",
             )
-   
+    gr.Markdown("# 📄 PDF Viewer Section")
+    gr.Markdown("Select a PDF from the dropdown below to view it.")
+    
+    with gr.Accordion("Open PDF Selection", open=False):
+        with gr.Row():
+            # Assign a larger scale to the dropdown
+            dropdown = gr.Dropdown(
+                choices=pdf_files,
+                label="Select a PDF",
+                value=pdf_files[0],  # Set a default value
+                scale=1  # This component takes twice the space
+            )
+            # Assign a smaller scale to the PDF viewer
+            pdf_viewer = PDF(
+                label="PDF Viewer",
+                interactive=True,
+                scale=3 # This component takes half the space compared to dropdown
+            )
+    
+        # Set up the event: when dropdown changes, update the PDF viewer
+        dropdown.change(
+            fn=display_pdf,
+            inputs=dropdown,
+            outputs=pdf_viewer
+        )
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("# Building Automation Assistant")
@@ -486,90 +528,98 @@ with gr.Blocks(
              #   theme="soft", # glass
                 description="Type your question about building automation here.",
                 examples=[
+                    "list the authors on the academic paper associated with the homezero project.",
+                    "What are the current maintenance protocols for HouseZero?",
+                    "How do the maintenance protocols for HouseZero compare to industry best practices?",
+                    "What are the most common maintenance challenges faced by net-zero energy buildings?",
+                    "How does the Uponor Climate Control Network System contribute to building maintenance?",
+                    "What role do smart systems play in the maintenance of sustainable buildings like HouseZero?",
+                    "Can you provide data on the energy performance of HouseZero over the past year?",                    
                      "Tell me about the HouseZero dataset. Retrieve information from the publication you have access to. Use your file retrieval tool.",
-                    "Describe in detail the relationshp between the columns in the two uploaded CSV files and the information you have access to regarding the HouseZero dataset. Be verbose. Use your file retrieval tool.",
-                    "Tell be in great detail any advice you have to maintain a small to midsize office building, like the HouseZero data corresponds to. Be verbose. Use your file retrieval tool.",
-                    "please caculate the correlation of each feature with the anomaly_score and retuen the values in descending order. return the top 10 rows.",
-                    "Tell me in great detail any advice you have for the building managers of large hospitals. Be verbose. Use your file retrieval tool.",
-                    "Show massachusetts electricity billing rates during the same time span as the CSV data",
+                    "Describe in detail the relationshp between the columns and values in the uploaded CSV files and the information you have access to regarding the HouseZero dataset. Be verbose. Use your file retrieval tool.",
+                    "Give me in great detail any advice you have to maintain a small to midsize office building, like the HouseZero data corresponds to. Be verbose. Use your file retrieval tool.",
+                    "Is there any information in the datafiles that indicates a problem with the building?",
+                    "Show Massachusetts electricity billing rates during the same time span as the CSV data",
                     "Use those rates and the relevant columns in the CSV files to estimate how much it costs to operate this building per month.",
-                    "What is the estimated average electricity cost for operating the building using massachusetts energy rates. use your file retrieval tool. use data csv files for building data. Limit your response to 140 characters. Use your file retrieval tool.",
-                    "The anomaly_score field on one of the CSVs indicates that that row is an anomaly if it has value greater than zero.. can you please list a few of the rows with the highest value for this column and using your building efficiency knowledge explain why they may represent a problem? Use your file retrieval tool.",
+                     "What is the estimated average electricity cost for operating the building using massachusetts energy rates. use your file retrieval tool. use data csv files for building data. Limit your response to 140 characters. Use your file retrieval tool.",
                     "Based on the data in these CSV files, can you assign an EnergyIQ score from 1-10 that reflects how well the building is operating? Explain the reason for your score and provide any recommendations on actions to take that can improve it in the future. Be verbose. Use your file retrieval tool.",
-                    "What would be a good feature to plot as a function of time to illustrate the problems of why the EnergyIQ score is low? Use your file retreival tool.",
+                    "Please summarize information concerning sensor networks that may be leading to faulty meaurements.",
+                    "Tell me how to properly install the PVC sky lights.",
+                    "Based on data and insights, what specific changes should be made to HouseZero's maintenance protocols?"
                 ],
                 fill_height=True,
             )
 
             gr.Markdown("---")
-    with gr.Column():
-        #    with gr.Column():
-        # Define the three ScatterPlot components
-        anomaly_plot = gr.ScatterPlot(
-            dfcleaned, 
-            x="Timestamp", 
-            y="Z5_RH", 
-            color="off-nominal",
-            title="Anomaly Score"
-        )
+    with gr.Accordion("Example Plots Section", open=False):
+        with gr.Column():
+            #    with gr.Column():
+            # Define the three ScatterPlot components
+            anomaly_plot = gr.ScatterPlot(
+                dfcleaned, 
+                x="Timestamp", 
+                y="Z5_RH", 
+                color="off-nominal",
+                title="Anomaly Score"
+            )
         
-        zone3_plot = gr.ScatterPlot(
-            dfcleaned,
-            x="Timestamp",
-            y="Z3_RH",
-            color="off-nominal",
-            title="Zone 3 Relative Humidity",
-        )
+            zone3_plot = gr.ScatterPlot(
+                dfcleaned,
+                x="Timestamp",
+                y="Z3_RH",
+                color="off-nominal",
+                title="Zone 3 Relative Humidity",
+            )
 
-        zone4_plot = gr.ScatterPlot(
-            dfcleaned,
-            x="Timestamp",
-            y="Z4_RH",
-            color="off-nominal",
-            title="Zone 4 Relative Humidity",
-        )
+            zone4_plot = gr.ScatterPlot(
+                dfcleaned,
+                x="Timestamp",
+                y="Z4_RH",
+                color="off-nominal",
+                title="Zone 4 Relative Humidity",
+            )
     
     # Group all plots into a list for easy management
-        plots = [anomaly_plot, zone3_plot, zone4_plot]
+            plots = [anomaly_plot, zone3_plot, zone4_plot]
 
-        def select_region(selection: gr.SelectData):
-            """
-            Handles the region selection event.
+            def select_region(selection: gr.SelectData):
+                """
+                Handles the region selection event.
 
-            Args:
-            selection (gr.SelectData): The data from the selection event.
+                Args:
+                selection (gr.SelectData): The data from the selection event.
 
-            Returns:
-            List[gr.Plot.update]: A list of update instructions for each plot.
-            """
-            if selection is None or selection.index is None:
-                return [gr.Plot.update() for _ in plots]
+                Returns:
+                List[gr.Plot.update]: A list of update instructions for each plot.
+                """
+                if selection is None or selection.index is None:
+                    return [gr.Plot.update() for _ in plots]
         
-            min_x, max_x = selection.index
+                min_x, max_x = selection.index
         # Update the x_lim for each plot
-            return [gr.ScatterPlot(x_lim=(min_x, max_x)) for _ in plots]
+                return [gr.ScatterPlot(x_lim=(min_x, max_x)) for _ in plots]
 
-        def reset_region():
-            """
-            Resets the x-axis limits for all plots.
+            def reset_region():
+                """
+                Resets the x-axis limits for all plots.
 
-            Returns:
-                List[gr.Plot.update]: A list of update instructions to reset x_lim.
-            """
-            return [gr.ScatterPlot(x_lim=None) for _ in plots]
+                Returns:
+                    List[gr.Plot.update]: A list of update instructions to reset x_lim.
+                """
+                return [gr.ScatterPlot(x_lim=None) for _ in plots]
 
     # Attach event listeners to each plot
-        for plot in plots:
-            plot.select(
-                select_region, 
-                inputs=None, 
-                outputs=plots  # Update all plots
-            )
-            plot.double_click(
-                reset_region, 
-                inputs=None, 
-                outputs=plots  # Reset all plots
-            )
+            for plot in plots:
+                plot.select(
+                    select_region, 
+                    inputs=None, 
+                    outputs=plots  # Update all plots
+                )
+                plot.double_click(
+                    reset_region, 
+                    inputs=None, 
+                    outputs=plots  # Reset all plots
+                )
 
            # plots = [plt, first_plot, second_plot]
 
