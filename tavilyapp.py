@@ -239,6 +239,11 @@ class EventHandler(AssistantEventHandler):
             args = json.loads(tool.function.arguments)
             loc = args["location"]
             tool_outputs.append({"tool_call_id": tool.id, "output": update_weather(loc)})
+        elif tool.function.name == "web_search":
+                print(tool.function.arguments)
+                args = json.loads(tool.function.arguments)
+                query = args["query"]
+                tool_outputs.append({"tool_call_id": tool.id, "output": web_search(query)})
         
       # Submit all tool_outputs at the same time
       self.submit_tool_outputs(tool_outputs, run_id)
