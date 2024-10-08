@@ -27,10 +27,35 @@ import matplotlib.pyplot as plt
 import io
 from pandasai import SmartDataframe
 from collections import Counter
+from gradio_pdf import PDF  # Ensure you have installed gradio_pdf
+
+
 
 # llmmodel = OpenAI(api_token=os.environ["OPENAI_API_KEY"], model='gpt-4o')
 
 import requests
+
+
+# Define the directory containing the PDFs
+PDF_DIR = "usedpdfs"  # Replace with your directory path
+
+# Ensure the PDF_DIR exists
+if not os.path.isdir(PDF_DIR):
+    raise ValueError(f"The directory '{PDF_DIR}' does not exist. Please check the path.")
+
+# Get list of PDF files in the directory
+pdf_files = [f for f in os.listdir(PDF_DIR) if f.lower().endswith('.pdf')]
+
+# Check if there are PDF files in the directory
+if not pdf_files:
+    raise ValueError(f"No PDF files found in the directory '{PDF_DIR}'.")
+
+def display_pdf(selected_file):
+    """
+    Given the selected file name, return the full path to display in the PDF viewer.
+    """
+    file_path = os.path.join(PDF_DIR, selected_file)
+    return file_path
 
 
 
@@ -607,7 +632,31 @@ with gr.Blocks(
                 outputs=output2,
                 api_name="update_weather_forecast",
             )
-   
+    gr.Markdown("# 📄 PDF Viewer Section")
+    gr.Markdown("Select a PDF from the dropdown below to view it.")
+    
+    with gr.Accordion("Open PDF Selection", open=False):
+        with gr.Row():
+            # Assign a larger scale to the dropdown
+            dropdown = gr.Dropdown(
+                choices=pdf_files,
+                label="Select a PDF",
+                value=pdf_files[0],  # Set a default value
+                scale=1  # This component takes twice the space
+            )
+            # Assign a smaller scale to the PDF viewer
+            pdf_viewer = PDF(
+                label="PDF Viewer",
+                interactive=True,
+                scale=3 # This component takes half the space compared to dropdown
+            )
+    
+        # Set up the event: when dropdown changes, update the PDF viewer
+        dropdown.change(
+            fn=display_pdf,
+            inputs=dropdown,
+            outputs=pdf_viewer
+        )
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("# Building Automation Assistant")
@@ -630,6 +679,7 @@ with gr.Blocks(
              #   theme="soft", # glass
                 description="Type your question about building automation here.",
                 examples=[
+                    "list the authors on the academic paper associated with the homezero project.",
                     "What are the current maintenance protocols for HouseZero?",
                     "How do the maintenance protocols for HouseZero compare to industry best practices?",
                     "What are the most common maintenance challenges faced by net-zero energy buildings?",
@@ -652,74 +702,75 @@ with gr.Blocks(
             )
 
             gr.Markdown("---")
-    with gr.Column():
-        #    with gr.Column():
-        # Define the three ScatterPlot components
-        anomaly_plot = gr.ScatterPlot(
-            dfcleaned, 
-            x="Timestamp", 
-            y="Z5_RH", 
-            color="off-nominal",
-            title="Anomaly Score"
-        )
+    with gr.Accordion("Example Plots Section", open=False):
+        with gr.Column():
+            #    with gr.Column():
+            # Define the three ScatterPlot components
+            anomaly_plot = gr.ScatterPlot(
+                dfcleaned, 
+                x="Timestamp", 
+                y="Z5_RH", 
+                color="off-nominal",
+                title="Anomaly Score"
+            )
         
-        zone3_plot = gr.ScatterPlot(
-            dfcleaned,
-            x="Timestamp",
-            y="Z3_RH",
-            color="off-nominal",
-            title="Zone 3 Relative Humidity",
-        )
+            zone3_plot = gr.ScatterPlot(
+                dfcleaned,
+                x="Timestamp",
+                y="Z3_RH",
+                color="off-nominal",
+                title="Zone 3 Relative Humidity",
+            )
 
-        zone4_plot = gr.ScatterPlot(
-            dfcleaned,
-            x="Timestamp",
-            y="Z4_RH",
-            color="off-nominal",
-            title="Zone 4 Relative Humidity",
-        )
+            zone4_plot = gr.ScatterPlot(
+                dfcleaned,
+                x="Timestamp",
+                y="Z4_RH",
+                color="off-nominal",
+                title="Zone 4 Relative Humidity",
+            )
     
     # Group all plots into a list for easy management
-        plots = [anomaly_plot, zone3_plot, zone4_plot]
+            plots = [anomaly_plot, zone3_plot, zone4_plot]
 
-        def select_region(selection: gr.SelectData):
-            """
-            Handles the region selection event.
+            def select_region(selection: gr.SelectData):
+                """
+                Handles the region selection event.
 
-            Args:
-            selection (gr.SelectData): The data from the selection event.
+                Args:
+                selection (gr.SelectData): The data from the selection event.
 
-            Returns:
-            List[gr.Plot.update]: A list of update instructions for each plot.
-            """
-            if selection is None or selection.index is None:
-                return [gr.Plot.update() for _ in plots]
+                Returns:
+                List[gr.Plot.update]: A list of update instructions for each plot.
+                """
+                if selection is None or selection.index is None:
+                    return [gr.Plot.update() for _ in plots]
         
-            min_x, max_x = selection.index
+                min_x, max_x = selection.index
         # Update the x_lim for each plot
-            return [gr.ScatterPlot(x_lim=(min_x, max_x)) for _ in plots]
+                return [gr.ScatterPlot(x_lim=(min_x, max_x)) for _ in plots]
 
-        def reset_region():
-            """
-            Resets the x-axis limits for all plots.
+            def reset_region():
+                """
+                Resets the x-axis limits for all plots.
 
-            Returns:
-                List[gr.Plot.update]: A list of update instructions to reset x_lim.
-            """
-            return [gr.ScatterPlot(x_lim=None) for _ in plots]
+                Returns:
+                    List[gr.Plot.update]: A list of update instructions to reset x_lim.
+                """
+                return [gr.ScatterPlot(x_lim=None) for _ in plots]
 
     # Attach event listeners to each plot
-        for plot in plots:
-            plot.select(
-                select_region, 
-                inputs=None, 
-                outputs=plots  # Update all plots
-            )
-            plot.double_click(
-                reset_region, 
-                inputs=None, 
-                outputs=plots  # Reset all plots
-            )
+            for plot in plots:
+                plot.select(
+                    select_region, 
+                    inputs=None, 
+                    outputs=plots  # Update all plots
+                )
+                plot.double_click(
+                    reset_region, 
+                    inputs=None, 
+                    outputs=plots  # Reset all plots
+                )
 
            # plots = [plt, first_plot, second_plot]
 
