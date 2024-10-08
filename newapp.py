@@ -29,20 +29,19 @@ import io
 from pandasai import SmartDataframe
 from collections import Counter
 from gradio_pdf import PDF  # Ensure you have installed gradio_pdf
-<<<<<<< HEAD
+
 
 
 
 # llmmodel = OpenAI(api_token=os.environ["OPENAI_API_KEY"], model='gpt-4o')
 
-=======
->>>>>>> function-tool
+
 import requests
 
 
 # Define the directory containing the PDFs
 PDF_DIR = "usedpdfs"  # Replace with your directory path
-<<<<<<< HEAD
+
 
 # Ensure the PDF_DIR exists
 if not os.path.isdir(PDF_DIR):
@@ -63,8 +62,7 @@ def display_pdf(selected_file):
     return file_path
 
 
-=======
->>>>>>> function-tool
+
 
 # Ensure the PDF_DIR exists
 if not os.path.isdir(PDF_DIR):
