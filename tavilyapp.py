@@ -42,10 +42,18 @@ import requests
 # Define the directory containing the PDFs
 PDF_DIR = "usedpdfs"  # Replace with your directory path
 
+# Define your desired default PDF file
+DEFAULT_PDF = "s41597-024-03770-7.pdf"  # Replace with your actual PDF filename
+
+
 
 # Ensure the PDF_DIR exists
 if not os.path.isdir(PDF_DIR):
     raise ValueError(f"The directory '{PDF_DIR}' does not exist. Please check the path.")
+
+# Check if the default PDF exists in the directory
+if DEFAULT_PDF not in pdf_files:
+    raise ValueError(f"Default PDF '{DEFAULT_PDF}' not found in '{PDF_DIR}'.")
 
 # Get list of PDF files in the directory
 pdf_files = [f for f in os.listdir(PDF_DIR) if f.lower().endswith('.pdf')]
@@ -60,6 +68,9 @@ def display_pdf(selected_file):
     """
     file_path = os.path.join(PDF_DIR, selected_file)
     return file_path
+
+
+
 
 
 def web_search(query: str) -> str:
@@ -546,14 +557,15 @@ with gr.Blocks(
             dropdown = gr.Dropdown(
                 choices=pdf_files,
                 label="Select a PDF",
-                value=pdf_files[0],  # Set a default value
+                value=DEFAULT_PDF,  # Set a default value
                 scale=1  # This component takes twice the space
             )
             # Assign a smaller scale to the PDF viewer
             pdf_viewer = PDF(
                 label="PDF Viewer",
                 interactive=True,
-                scale=3 # This component takes half the space compared to dropdown
+                scale=3 ,
+                value=display_pdf(DEFAULT_PDF)# This component takes half the space compared to dropdown
             )
     
         # Set up the event: when dropdown changes, update the PDF viewer
