@@ -51,12 +51,13 @@ DEFAULT_PDF = "s41597-024-03770-7.pdf"  # Replace with your actual PDF filename
 if not os.path.isdir(PDF_DIR):
     raise ValueError(f"The directory '{PDF_DIR}' does not exist. Please check the path.")
 
-# Check if the default PDF exists in the directory
-if DEFAULT_PDF not in pdf_files:
-    raise ValueError(f"Default PDF '{DEFAULT_PDF}' not found in '{PDF_DIR}'.")
+
 
 # Get list of PDF files in the directory
 pdf_files = [f for f in os.listdir(PDF_DIR) if f.lower().endswith('.pdf')]
+
+if DEFAULT_PDF not in pdf_files:
+    raise ValueError(f"Default PDF '{DEFAULT_PDF}' not found in '{PDF_DIR}'.")
 
 # Check if there are PDF files in the directory
 if not pdf_files:
