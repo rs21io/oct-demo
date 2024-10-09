@@ -610,6 +610,7 @@ with gr.Blocks(
                     "Can you provide data on the energy performance of HouseZero over the past year?",                    
                      "Tell me about the HouseZero dataset. Retrieve information from the publication you have access to. Use your file retrieval tool.",
                     "Describe in detail the relationshp between the columns and values in the uploaded CSV files and the information you have access to regarding the HouseZero dataset. Be verbose. Use your file retrieval tool.",
+                    "Please comment on the zone relative humidity features, specifically if they indicate a problem withthe building",
                     "Give me in great detail any advice you have to maintain a small to midsize office building, like the HouseZero data corresponds to. Be verbose. Use your file retrieval tool.",
                     "Is there any information in the datafiles that indicates a problem with the building?",
                     "Show Massachusetts electricity billing rates during the same time span as the CSV data",
