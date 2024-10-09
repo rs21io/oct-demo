@@ -618,7 +618,8 @@ with gr.Blocks(
                     "Based on the data in these CSV files, can you assign an EnergyIQ score from 1-10 that reflects how well the building is operating? Explain the reason for your score and provide any recommendations on actions to take that can improve it in the future. Be verbose. Use your file retrieval tool.",
                     "Please summarize information concerning sensor networks that may be leading to faulty meaurements.",
                     "Tell me how to properly install the PVC sky lights.",
-                    "Based on data and insights, what specific changes should be made to HouseZero's maintenance protocols?"
+                    "Based on data and insights, what specific changes should be made to HouseZero's maintenance protocols?",
+                    "what recommendations do you have to mitigate against high relative humidity zone measurements in structures like the housezero building?"
                 ],
                 fill_height=True,
             )
