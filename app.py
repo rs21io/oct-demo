@@ -597,13 +597,13 @@ with gr.Blocks(
              #   theme="soft", # glass
                 description="Type your question about building automation here.",
                 examples=[
-                    "Give the weather forecast for Cambridge, MA",
-                    "Give me the weather forecast for New York, NY. express the windspeed in miles per hour.",
+                 #   "Give the weather forecast for Cambridge, MA",
+                 #   "Give me the weather forecast for New York, NY. express the windspeed in miles per hour.",
                     "list the authors on the academic paper associated with the homezero project.",
                     "What are some good API services that i can use to help fetch relevant data for building automation purposes? include hyperlinks in your response.",
                     "show the first few rows of each of the uploaded csv files",
-                    "What are the current maintenance protocols for HouseZero?",
-                    "How do the maintenance protocols for HouseZero compare to industry best practices?",
+                  #  "What are the current maintenance protocols for HouseZero?",
+                   # "How do the maintenance protocols for HouseZero compare to industry best practices?",
                     "What are the most common maintenance challenges faced by net-zero energy buildings?",
                     "How does the Uponor Climate Control Network System contribute to building maintenance?",
                     "What role do smart systems play in the maintenance of sustainable buildings like HouseZero?",
@@ -623,6 +623,7 @@ with gr.Blocks(
                     "what recommendations do you have to mitigate against high relative humidity zone measurements in structures like the housezero building?"
                 ],
                 fill_height=True,
+                cache_examples=True,
             )
 
             gr.Markdown("---")
