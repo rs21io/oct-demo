@@ -4,7 +4,7 @@ typing_extensions==4.12.2
 gradio
 pandasai==2.2.15
 gradio_pdf==0.0.15
-pandas==2.2.3
+pandas
 numpy==1.23.5
 matplotlib==3.7.5
 requests==2.32.3
