@@ -596,7 +596,7 @@ with gr.Blocks(
                 examples_per_page= 5,
              #   theme="soft", # glass
                 description="Type your question about building automation here.",
-                cache_examples=True,
+              #  cache_examples=True,
                 examples=[
                  #   "Give the weather forecast for Cambridge, MA",
                  #   "Give me the weather forecast for New York, NY. express the windspeed in miles per hour.",
