@@ -2,7 +2,7 @@ python-dotenv==1.0.1
 openai==1.50.2
 typing_extensions==4.12.2
 gradio
-pandasai
+pandasai==2.2.15
 gradio_pdf==0.0.15
 pandas==2.2.3
 numpy==1.23.5
