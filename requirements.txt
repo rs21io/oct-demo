@@ -1,4 +1,4 @@
-gradio==4.44.1
+gradio==5.0.0
 gradio_pdf==0.0.16
 matplotlib==3.7.5
 numpy==1.23.5
